@@ -1,0 +1,6 @@
+anonymous_timezone.admin:
+  title: 'Anonymous Timezone settings'
+  description: 'Specify the GeoDB to use for the location / timezone-matching.'
+  parent: system.admin_config_regional
+  route_name: anonymous_timezone.settings
+  weight: 100

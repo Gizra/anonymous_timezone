@@ -1,0 +1,6 @@
+anonymous_timezone.settings:
+  path: '/admin/config/anonymous_timezone'
+  defaults:
+    _form: 'Drupal\anonymous_timezone\Form\AnonymousTimezoneSettingsForm'
+  requirements:
+    _permission: 'administer site configuration'
