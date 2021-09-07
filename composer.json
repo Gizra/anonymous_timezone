@@ -1,0 +1,23 @@
+{
+    "name": "drupal/anonymous_timezone",
+    "description": "Provides timezone support for anonymous users",
+    "type": "drupal-module",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Aron Novak",
+            "homepage": "https://www.drupal.org/u/aron-novak",
+            "role": "Maintainer"
+        }
+    ],
+    "homepage": "https://drupal.org/project/anonymous_timezone",
+    "support": {
+        "issues": "https://drupal.org/project/issues/anonymous_timezone",
+        "source": "https://git.drupalcode.org/project/anonymous_timezone"
+    },
+    "require": {
+        "geoip2/geoip2": "~2.0"
+    }
+}
+
+
