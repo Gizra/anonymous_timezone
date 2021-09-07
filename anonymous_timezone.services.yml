@@ -1,0 +1,4 @@
+services:
+  current_user:
+    class: Drupal\anonymous_timezone\AnonymousTimezoneAccountProxy
+    arguments: ['@event_dispatcher', '@page_cache_kill_switch', '@request_stack', '@config.factory']

@@ -1,0 +1,27 @@
+<?php
+
+/**
+ * @file
+ * Anonymous Timezone module.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function anonymous_timezone_help(string $route_name, RouteMatchInterface $route_match) {
+  if ($route_name !== 'system.performance_settings') {
+    return;
+  }
+
+  return t('Anonymous Timezone module <strong>disables page cache generally</strong> in order to provide pages for anonymous visitors where dates and times are according to the local timezone. Render array cache is still effective, so please use <code>timezone</code> cache context everywhere where you emit dates or times.');
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function anonymous_timezone_form_system_performance_settings_alter(array &$form, FormStateInterface $form_state, string $form_id) {
+  $form['caching']['page_cache_maximum_age']['#attributes']['disabled'] = 'disabled';
+}

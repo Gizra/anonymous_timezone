@@ -1,0 +1,32 @@
+<?php
+
+/**
+ * @file
+ * Installation logic.
+ */
+
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_requirements().
+ */
+function anonymous_timezone_requirements(string $phase) {
+  if ($phase !== 'runtime') {
+    return;
+  }
+
+  $geodb = \Drupal::configFactory()->get('anonymous_timezone.settings')->get('geodb');
+  if (!empty($geodb) && file_exists($geodb)) {
+    return;
+  }
+  $requirements['anonymous_timezone'] = [
+    'description' => t('Anonymous Timezone needs a timezone database (mmdb) from <a href=":url">MaxMind</a>', [
+      ':url' => Url::fromUri('https://dev.maxmind.com/geoip/geolite2-free-geolocation-data?lang=en')->toString(),
+    ]),
+    'severity' => REQUIREMENT_ERROR,
+    'value' => t('File missing'),
+    'title' => t('Anonymous Timezone'),
+  ];
+
+  return $requirements;
+}
