@@ -9,7 +9,7 @@ use GeoIp2\Database\Reader;
 use MaxMind\Db\Reader\InvalidDatabaseException;
 
 /**
- * Configure GeoDB for the module.
+ * Configure module settings.
  */
 class AnonymousTimezoneSettingsForm extends ConfigFormBase {
 
@@ -37,6 +37,12 @@ class AnonymousTimezoneSettingsForm extends ConfigFormBase {
       ]),
       '#default_value' => $config->get('geodb'),
     ];
+    $form['exclude_paths'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Exclude paths - where anonymous timezone detection should be disabled'),
+      '#description' => $this->t('That way page cache can be restored selectively where no timezone-dependent information is rendered. Put one path per line.'),
+      '#default_value' => join("\n", $config->get('exclude_paths')),
+    ];
     return $form;
   }
 
@@ -47,12 +53,13 @@ class AnonymousTimezoneSettingsForm extends ConfigFormBase {
     $geodb_path = $form_state->getValue('geodb');
     if (!file_exists($geodb_path)) {
       $form_state->setError($form['geodb'], $this->t('The specified path does not exist'));
+      return;
     }
 
     try {
       new Reader($geodb_path);
     }
-    catch (InvalidDatabaseException $e) {
+    catch (\Exception $e) {
       $form_state->setError($form['geodb'], $e->getMessage());
     }
     parent::validateForm($form, $form_state);
@@ -62,8 +69,15 @@ class AnonymousTimezoneSettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
+    $exclude_paths = preg_split("/\r\n|\n|\r/", $form_state->getValue('exclude_paths'));
+    foreach ($exclude_paths as $key => $exclude_path) {
+      if (empty($exclude_path)) {
+        unset($exclude_paths[$key]);
+      }
+    }
     $config = $this->config('anonymous_timezone.settings');
     $config->set('geodb', $form_state->getValue('geodb'));
+    $config->set('exclude_paths', $exclude_paths);
     $config->save();
     parent::submitForm($form, $form_state);
   }

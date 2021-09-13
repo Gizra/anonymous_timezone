@@ -92,14 +92,25 @@ class AnonymousTimezoneAccountProxy extends AccountProxy {
    * @throws \MaxMind\Db\Reader\InvalidDatabaseException
    */
   protected function getGeoTimeZone() {
+    $settings = $this->configFactory->get('anonymous_timezone.settings');
+    $current_request = $this->requestStack->getCurrentRequest();
+    $exclude_paths = $settings->get('exclude_paths');
+    if (!empty($exclude_paths) && is_array($exclude_paths)) {
+      $uri = $current_request->getRequestUri();
+      if (in_array($uri, $exclude_paths)) {
+        return NULL;
+      }
+    }
+
     $cache = &drupal_static(__METHOD__, []);
-    $ip = $this->requestStack->getCurrentRequest()->getClientIp();
+
+    $ip = $current_request->getClientIp();
     if (isset($cache[$ip])) {
       return $cache[$ip];
     }
     try {
       $this->killSwitch->trigger();
-      $geodb_file = $this->configFactory->get('anonymous_timezone.settings')->get('geodb');
+      $geodb_file = $settings->get('geodb');
       if (empty($geodb_file) || !file_exists($geodb_file)) {
         throw new GeoIp2Exception('Missing GeoDB file');
       }
