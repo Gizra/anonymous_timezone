@@ -2,16 +2,50 @@
 
 namespace Drupal\anonymous_timezone\Form;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use GeoIp2\Database\Reader;
-use MaxMind\Db\Reader\InvalidDatabaseException;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Configure module settings.
  */
 class AnonymousTimezoneSettingsForm extends ConfigFormBase {
+
+  /**
+   * @var \Drupal\Core\File\FileSystemInterface
+   */
+  protected FileSystemInterface $fileSystem;
+
+  /**
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   */
+  protected EntityTypeManagerInterface $entityTypeManager;
+
+  /**
+   * Class constructor.
+   */
+  public function __construct(ConfigFactoryInterface $config_factory, FileSystemInterface $file_system, EntityTypeManagerInterface $entity_type_manager) {
+    $this->fileSystem = $file_system;
+    $this->entityTypeManager = $entity_type_manager;
+    parent::__construct($config_factory);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    // Instantiates this form class.
+    return new static(
+      $container->get('config.factory'),
+      $container->get('file_system'),
+      $container->get('entity_type.manager')
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -37,6 +71,18 @@ class AnonymousTimezoneSettingsForm extends ConfigFormBase {
       ]),
       '#default_value' => $config->get('geodb'),
     ];
+    $validators = [
+      'file_validate_extensions' => ['mmdb'],
+    ];
+    $form['geodb_file'] = [
+      '#type' => 'managed_file',
+      '#name' => 'geodb_file',
+      '#title' => t('GeoDB File'),
+      '#size' => 20,
+      '#description' => t('If no access to the server / codebase, you might also upload the mmdb file here.'),
+      '#upload_validators' => $validators,
+      '#upload_location' => 'public://anonymous_timezone/',
+    ];
     $form['exclude_paths'] = [
       '#type' => 'textarea',
       '#title' => $this->t('Exclude paths - where anonymous timezone detection should be disabled'),
@@ -50,18 +96,36 @@ class AnonymousTimezoneSettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
+    $geodb_file = $form_state->getValue('geodb_file');
     $geodb_path = $form_state->getValue('geodb');
-    if (!file_exists($geodb_path)) {
-      $form_state->setError($form['geodb'], $this->t('The specified path does not exist'));
+    if (!file_exists($geodb_path) && empty($geodb_file)) {
+      $form_state->setError($form['geodb'], $this->t('No GeoDB file available. Either specify a path directly or upload it via the file field.'));
       return;
     }
 
+    if (!empty($geodb_file)) {
+      [$fid] = $geodb_file;
+      /** @var \Drupal\file\FileStorageInterface $file_storage */
+      $file_storage = \Drupal::entityTypeManager()->getStorage('file');
+      $uploaded_file = $file_storage->load($fid);
+      $geodb_path = $uploaded_file->getFileUri();
+    }
+
     try {
-      new Reader($geodb_path);
+      $reader = new Reader($geodb_path);
+      $reader->city($_SERVER['REMOTE_ADDR']);
     }
     catch (\Exception $e) {
-      $form_state->setError($form['geodb'], $e->getMessage());
+      if (strstr($e->getMessage(), 'is not in the database') === FALSE) {
+        $form_state->setError($form['geodb'], $e->getMessage());
+      }
     }
+
+    // If the validation seems to be okay, use the uploaded path.
+    if (!empty($geodb_file)) {
+      $form_state->setValue('geodb', $geodb_path);
+    }
+
     parent::validateForm($form, $form_state);
   }
 
@@ -76,7 +140,7 @@ class AnonymousTimezoneSettingsForm extends ConfigFormBase {
       }
     }
     $config = $this->config('anonymous_timezone.settings');
-    $config->set('geodb', $form_state->getValue('geodb'));
+    $config->set('geodb', $this->fileSystem->realpath($form_state->getValue('geodb')));
     $config->set('exclude_paths', $exclude_paths);
     $config->save();
     parent::submitForm($form, $form_state);
