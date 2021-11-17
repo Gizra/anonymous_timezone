@@ -83,11 +83,15 @@ class AnonymousTimezoneSettingsForm extends ConfigFormBase {
       '#upload_validators' => $validators,
       '#upload_location' => 'public://anonymous_timezone/',
     ];
+    $exclude_paths = $config->get('exclude_paths');
+    if (empty($exclude_paths)) {
+      $exclude_paths = [];
+    }
     $form['exclude_paths'] = [
       '#type' => 'textarea',
       '#title' => $this->t('Exclude paths - where anonymous timezone detection should be disabled'),
       '#description' => $this->t('That way page cache can be restored selectively where no timezone-dependent information is rendered. Put one path per line.'),
-      '#default_value' => join("\n", $config->get('exclude_paths')),
+      '#default_value' => join("\n", $exclude_paths),
     ];
     return $form;
   }
