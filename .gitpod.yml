@@ -7,7 +7,7 @@ tasks:
   - name: Terminal
     init: |
       export DDEV_NONINTERACTIVE=true
-      git clone git@github.com:Gizra/drupal-starter.git
+      git clone https://github.com/Gizra/drupal-starter.git
       cd drupal-starter
       .ddev/gitpod-setup-ddev.sh
       ddev composer require drupal/anonymous_timezone
